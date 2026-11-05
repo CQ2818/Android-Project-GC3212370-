@@ -20,6 +20,10 @@ import com.griffith.mydiary.ui.screens.HomeScreen
 import com.griffith.mydiary.ui.screens.SettingsScreen
 import com.griffith.mydiary.ui.theme.MyDiaryTheme
 
+/**
+ * The navigation routes for all screens.
+ * Routes with an id carry the selected entry as a parameter.
+ */
 object Routes {
     const val HOME = "home"
     const val SETTINGS = "settings"
@@ -27,6 +31,10 @@ object Routes {
     const val DETAIL = "detail/{id}"
 }
 
+/**
+ * The root composable that holds the global state and sets up navigation.
+ * It hosts the NavHost that maps each route to its screen,
+ */
 @Composable
 fun DiaryApp() {
     val context = LocalContext.current

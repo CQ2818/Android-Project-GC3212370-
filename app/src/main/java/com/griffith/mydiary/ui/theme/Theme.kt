@@ -8,6 +8,9 @@ import androidx.compose.ui.graphics.Color
 
 private val ColorWhite = Color(0xFFFFFFFF)
 
+/**
+ * The color scheme for the light theme.
+ */
 private val LightColors = lightColorScheme(
     primary = Amber,
     onPrimary = ColorWhite,
@@ -28,6 +31,9 @@ private val LightColors = lightColorScheme(
     onError = ColorWhite
 )
 
+/**
+ * The color scheme for the dark theme.
+ */
 private val DarkColors = darkColorScheme(
     primary = DarkAmber,
     onPrimary = DarkBackground,
@@ -48,6 +54,10 @@ private val DarkColors = darkColorScheme(
     onError = DarkBackground
 )
 
+/**
+ * The app theme that switches between light and dark color schemes.
+ * It wraps the app content with the selected colors.
+ */
 @Composable
 fun MyDiaryTheme(
     darkTheme: Boolean,

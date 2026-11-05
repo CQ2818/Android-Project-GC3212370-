@@ -45,6 +45,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @OptIn(ExperimentalMaterial3Api::class)
+/**
+ * The setting screen with controls for dark mode, time display and the about dialog.
+ */
 @Composable
 fun SettingsScreen(
     darkTheme: Boolean,

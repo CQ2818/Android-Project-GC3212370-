@@ -49,6 +49,10 @@ import java.util.Date
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
+/**
+ * The home screen that lists all diary entries.
+ * It provides the settings button, the add FAB and shake-to-create.
+ */
 @Composable
 fun HomeScreen(
     entries: List<DiaryEntry>,
@@ -148,6 +152,9 @@ fun HomeScreen(
     }
 }
 
+/**
+ * A card that displays one diary entry with its mood, content, time and location.
+ */
 @Composable
 private fun DiaryCard(
     entry: DiaryEntry,
@@ -226,5 +233,8 @@ private fun DiaryCard(
     }
 }
 
+/**
+ * Formats a timestamp into a readable date string.
+ */
 private fun formatTime(millis: Long): String =
     SimpleDateFormat("MMM d, HH:mm", Locale.getDefault()).format(Date(millis))

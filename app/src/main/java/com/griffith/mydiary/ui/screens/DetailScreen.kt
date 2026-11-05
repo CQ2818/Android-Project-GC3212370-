@@ -55,6 +55,10 @@ import java.util.Date
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
+/**
+ * The detail screen that shows one full entry.
+ * It offers edit, delete, share and map actions.
+ */
 @Composable
 fun DetailScreen(
     entry: DiaryEntry?,
@@ -252,6 +256,9 @@ fun DetailScreen(
     }
 }
 
+/**
+ * Shares the entry text through an implicit send intent.
+ */
 private fun shareEntry(context: android.content.Context, entry: DiaryEntry) {
     val intent = Intent(Intent.ACTION_SEND).apply {
         type = "text/plain"
@@ -261,6 +268,10 @@ private fun shareEntry(context: android.content.Context, entry: DiaryEntry) {
     context.startActivity(Intent.createChooser(intent, "Share diary"))
 }
 
+/**
+ * Opens the location in a map app using an Implicit view intent.
+ * Shows a toast if no map app is available.
+ */
 private fun openMap(context: android.content.Context, entry: DiaryEntry) {
     try {
         val uri = Uri.parse("geo:0,0?q=" + Uri.encode(entry.location))
@@ -270,5 +281,8 @@ private fun openMap(context: android.content.Context, entry: DiaryEntry) {
     }
 }
 
+/**
+ * Formats a timestamp into a full readable date and time string.
+ */
 private fun formatFullTime(millis: Long): String =
     SimpleDateFormat("MMM d, yyyy HH:mm", Locale.getDefault()).format(Date(millis))

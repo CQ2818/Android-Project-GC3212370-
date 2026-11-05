@@ -23,12 +23,19 @@ import androidx.compose.ui.unit.sp
 import com.griffith.mydiary.data.Mood
 import com.griffith.mydiary.data.style
 
+/**
+ * Maps each mood to its matching icon.
+ */
 fun Mood.icon(): ImageVector = when (this) {
     Mood.HAPPY -> Icons.Outlined.SentimentSatisfied
     Mood.PEACE -> Icons.Outlined.SentimentNeutral
     Mood.SAD -> Icons.Outlined.SentimentDissatisfied
 }
 
+/**
+ * A custom composable that displays a mood with its icon and label.
+ * IT is styled with the mood's colors in a rounded pill shape.
+ */
 @Composable
 fun MoodChip(mood: Mood, modifier: Modifier = Modifier) {
     val moodStyle = mood.style()
