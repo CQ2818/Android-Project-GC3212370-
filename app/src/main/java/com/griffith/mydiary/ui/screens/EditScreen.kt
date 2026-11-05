@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -29,6 +30,7 @@ import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -59,6 +61,27 @@ import com.griffith.mydiary.data.Mood
 import com.griffith.mydiary.sensors.rememberTodayStepCount
 import com.griffith.mydiary.ui.components.icon
 
+private const val TAG = "EditScreen"
+
+// Transcribro reads this extra to know whether it should stop after one utterance.
+private const val EXTRA_TRANSCRIBRO_AUTO_STOP =
+    "dev.soupslurpr.transcribro.EXTRA_AUTO_STOP"
+
+private enum class SpeechState { IDLE, LISTENING, PROCESSING }
+
+private fun speechErrorMessage(error: Int): String = when (error) {
+    SpeechRecognizer.ERROR_AUDIO -> "Audio recording error. Please try again."
+    SpeechRecognizer.ERROR_CLIENT -> "Speech client error. Please try again."
+    SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Microphone permission is missing."
+    SpeechRecognizer.ERROR_NETWORK -> "Network error. Please check your connection."
+    SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "Network timeout. Please try again."
+    SpeechRecognizer.ERROR_NO_MATCH -> "No speech detected. Please try again."
+    SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "Recognition is already running. Please wait."
+    SpeechRecognizer.ERROR_SERVER -> "Recognition server error. Please try again."
+    SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "No speech input. Please try again."
+    else -> "Speech recognition failed (code $error)."
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditScreen(
@@ -75,25 +98,45 @@ fun EditScreen(
     val todaySteps = rememberTodayStepCount()
 
     var recognizer by remember { mutableStateOf<SpeechRecognizer?>(null) }
+    var speechState by remember { mutableStateOf(SpeechState.IDLE) }
 
     DisposableEffect(Unit) {
         val newRecognizer = SpeechRecognizer.createSpeechRecognizer(context)
         newRecognizer.setRecognitionListener(object : RecognitionListener {
+            override fun onReadyForSpeech(params: Bundle?) {
+                Log.d(TAG, "onReadyForSpeech")
+                speechState = SpeechState.LISTENING
+            }
+
+            override fun onBeginningOfSpeech() {
+                Log.d(TAG, "onBeginningOfSpeech")
+                speechState = SpeechState.LISTENING
+            }
+
+            override fun onEndOfSpeech() {
+                Log.d(TAG, "onEndOfSpeech")
+                speechState = SpeechState.PROCESSING
+            }
+
             override fun onResults(results: Bundle?) {
                 val text = results
                     ?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                     ?.firstOrNull()
+                Log.d(TAG, "onResults: $text")
                 if (!text.isNullOrBlank()) {
                     content = if (content.isBlank()) text else "$content $text"
                 }
+                speechState = SpeechState.IDLE
             }
 
-            override fun onError(error: Int) = Unit
-            override fun onReadyForSpeech(params: Bundle?) = Unit
-            override fun onBeginningOfSpeech() = Unit
+            override fun onError(error: Int) {
+                Log.e(TAG, "onError: $error")
+                Toast.makeText(context, speechErrorMessage(error), Toast.LENGTH_SHORT).show()
+                speechState = SpeechState.IDLE
+            }
+
             override fun onRmsChanged(rmsdB: Float) = Unit
             override fun onBufferReceived(buffer: ByteArray?) = Unit
-            override fun onEndOfSpeech() = Unit
             override fun onPartialResults(partialResults: Bundle?) = Unit
             override fun onEvent(eventType: Int, params: Bundle?) = Unit
         })
@@ -106,14 +149,28 @@ fun EditScreen(
     }
 
     val startListening: () -> Unit = {
-        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(
-                RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
-            )
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-US")
+        if (!SpeechRecognizer.isRecognitionAvailable(context)) {
+            Toast
+                .makeText(
+                    context,
+                    "No speech recognition service is available on this device.",
+                    Toast.LENGTH_LONG
+                )
+                .show()
+            speechState = SpeechState.IDLE
+        } else {
+            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                putExtra(
+                    RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                    RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+                )
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-US")
+                putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
+                putExtra(EXTRA_TRANSCRIBRO_AUTO_STOP, true)
+            }
+            speechState = SpeechState.LISTENING
+            recognizer?.startListening(intent)
         }
-        recognizer?.startListening(intent)
     }
 
     val micPermissionLauncher = rememberLauncherForActivityResult(
@@ -180,24 +237,58 @@ fun EditScreen(
                 shape = RoundedCornerShape(12.dp),
                 trailingIcon = {
                     IconButton(onClick = {
-                        if (ContextCompat.checkSelfPermission(
-                                context,
-                                Manifest.permission.RECORD_AUDIO
-                            ) == PackageManager.PERMISSION_GRANTED
-                        ) {
-                            startListening()
-                        } else {
-                            micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                        when (speechState) {
+                            SpeechState.IDLE -> {
+                                if (ContextCompat.checkSelfPermission(
+                                        context,
+                                        Manifest.permission.RECORD_AUDIO
+                                    ) == PackageManager.PERMISSION_GRANTED
+                                ) {
+                                    startListening()
+                                } else {
+                                    micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                }
+                            }
+                            // Tap again while recording to stop and get the result.
+                            SpeechState.LISTENING -> recognizer?.stopListening()
+                            // Ignore taps while the audio is being transcribed.
+                            SpeechState.PROCESSING -> Unit
                         }
                     }) {
-                        Icon(
-                            Icons.Filled.Mic,
-                            contentDescription = "Voice input",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
+                        when (speechState) {
+                            SpeechState.IDLE -> Icon(
+                                Icons.Filled.Mic,
+                                contentDescription = "Voice input",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            SpeechState.LISTENING -> Icon(
+                                Icons.Filled.Stop,
+                                contentDescription = "Stop recording",
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                            SpeechState.PROCESSING -> Icon(
+                                Icons.Filled.Mic,
+                                contentDescription = "Processing",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             )
+
+            when (speechState) {
+                SpeechState.LISTENING -> Text(
+                    text = "Listening... speak now, or tap the icon to stop.",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                SpeechState.PROCESSING -> Text(
+                    text = "Processing your speech...",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                SpeechState.IDLE -> {}
+            }
 
             OutlinedTextField(
                 value = location,
