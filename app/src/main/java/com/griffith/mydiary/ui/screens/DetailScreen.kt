@@ -273,6 +273,10 @@ private fun shareEntry(context: android.content.Context, entry: DiaryEntry) {
  * Shows a toast if no map app is available.
  */
 private fun openMap(context: android.content.Context, entry: DiaryEntry) {
+    if(entry.location.isBlank()){
+        Toast.makeText(context,"No location saved.", Toast.LENGTH_SHORT).show()
+        return
+    }
     try {
         val uri = Uri.parse("geo:0,0?q=" + Uri.encode(entry.location))
         context.startActivity(Intent(Intent.ACTION_VIEW, uri))

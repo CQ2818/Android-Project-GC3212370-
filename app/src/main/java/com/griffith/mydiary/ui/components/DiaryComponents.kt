@@ -34,7 +34,7 @@ fun Mood.icon(): ImageVector = when (this) {
 
 /**
  * A custom composable that displays a mood with its icon and label.
- * IT is styled with the mood's colors in a rounded pill shape.
+ * It is styled with the mood's colors in a rounded pill shape.
  */
 @Composable
 fun MoodChip(mood: Mood, modifier: Modifier = Modifier) {

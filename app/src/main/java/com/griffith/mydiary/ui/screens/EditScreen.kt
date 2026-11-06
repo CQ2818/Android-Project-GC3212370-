@@ -367,8 +367,9 @@ fun EditScreen(
                             Toast.LENGTH_SHORT
                         ).show()
                     } else {
-                        val id = initial?.id ?: System.currentTimeMillis()
-                        val createdAt = initial?.createdAt ?: System.currentTimeMillis()
+                        val now = System.currentTimeMillis()
+                        val id = initial?.id ?: now
+                        val createdAt = initial?.createdAt ?: now
                         onSave(
                             DiaryEntry(
                                 id = id,
