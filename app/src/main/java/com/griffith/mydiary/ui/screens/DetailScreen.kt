@@ -278,7 +278,15 @@ private fun openMap(context: android.content.Context, entry: DiaryEntry) {
         return
     }
     try {
-        val uri = Uri.parse("geo:0,0?q=" + Uri.encode(entry.location))
+        val parts = entry.location.split(",")
+        val isCoordinates = parts.size ==2 &&
+                parts.all { it.trim().toDoubleOrNull() != null }
+
+        val uri = if (isCoordinates){
+            Uri.parse(("geo:${entry.location.trim()}"))
+        }else {
+            Uri.parse("geo:0,0?q="+ Uri.encode(entry.location))
+        }
         context.startActivity(Intent(Intent.ACTION_VIEW, uri))
     } catch (e: ActivityNotFoundException) {
         Toast.makeText(context, "No map app found.", Toast.LENGTH_SHORT).show()

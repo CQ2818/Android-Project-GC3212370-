@@ -1,5 +1,8 @@
 package com.griffith.mydiary.ui.screens
 
+import android.content.Context
+import android.location.LocationManager
+import java.util.Locale
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -29,6 +32,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Button
@@ -178,6 +182,50 @@ fun EditScreen(
     ) { granted ->
         if (granted) startListening()
     }
+    val fetchLocation: () -> Unit = {
+        val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+
+
+        val provider = when {
+            locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ->
+                LocationManager.GPS_PROVIDER
+            locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER) ->
+                LocationManager.NETWORK_PROVIDER
+            else -> null
+        }
+        if (provider == null){
+            Toast.makeText(
+                context,
+                "Please turn on location services.",
+                Toast.LENGTH_SHORT
+            ).show()
+        }else{
+            val lastLocation = locationManager.getLastKnownLocation(provider)
+            if (lastLocation != null){
+                location = String.format(
+                    Locale.US,
+                    "%.6f,%.6f",
+                    lastLocation.latitude,
+                    lastLocation.longitude
+                )
+                Toast.makeText(context,"Location updated.", Toast.LENGTH_SHORT).show()
+            } else{
+                Toast.makeText(
+                    context,
+                    "No recent location found. Please open a map first and try again.",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+    }
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) {granted ->
+        if (granted) fetchLocation()
+    }
+
+
 
     val stepPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -303,6 +351,24 @@ fun EditScreen(
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary
                     )
+                },
+                trailingIcon = {
+                    IconButton(onClick = {
+                        if (ContextCompat.checkSelfPermission(
+                            context,
+                                Manifest.permission.ACCESS_FINE_LOCATION
+                        ) == PackageManager.PERMISSION_GRANTED
+                    ){fetchLocation()
+                     }else {
+                         locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                     }
+                    }) {
+                        Icon(
+                            Icons.Filled.MyLocation,
+                            contentDescription = "Use my current location",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
             )
 
